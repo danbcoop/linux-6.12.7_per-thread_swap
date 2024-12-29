@@ -21,6 +21,14 @@ menuconfig SWAP
 	  for so called swap devices or swap files in your kernel that are
 	  used to provide more virtual memory than the actual RAM present
 	  in your computer.  If unsure say Y.
+	  
+config SWAP_TID
+	bool "Support for threadwise paging of anonymous memory"
+	depends on SWAP
+	default y
+	help
+	  If selected, swap readahead will be calculated for each thread
+	  individually.
 
 config ZSWAP
 	bool "Compressed cache for swap pages"

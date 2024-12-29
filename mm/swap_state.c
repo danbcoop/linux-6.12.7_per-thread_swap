@@ -23,6 +23,10 @@
 #include <linux/swap_slots.h>
 #include <linux/huge_mm.h>
 #include <linux/shmem_fs.h>
+#ifdef CONFIG_SWAP_TID
+/* We need the "current" macro to access the tid from "task_struct" */
+#include <linux/sched.h>
+#endif
 #include "internal.h"
 #include "swap.h"
 
@@ -58,9 +62,15 @@ static bool enable_vma_readahead __read_mostly = true;
 	 (((win) << SWAP_RA_WIN_SHIFT) & SWAP_RA_WIN_MASK) |	\
 	 ((hits) & SWAP_RA_HITS_MASK))
 
+
+#ifdef CONFIG_SWAP_TID
+#define GET_SWAP_RA_VAL(vma, tid)					\
+	(atomic_long_read(&(vma)->swap_readahead_infos[tid & (MAX_NR_THREADS - 1)]) ? : 4)
+#else
 /* Initial readahead hits is 4 to start up with a small window */
 #define GET_SWAP_RA_VAL(vma)					\
 	(atomic_long_read(&(vma)->swap_readahead_info) ? : 4)
+#endif
 
 static atomic_t swapin_readahead_hits = ATOMIC_INIT(4);
 
@@ -340,6 +350,11 @@ static inline bool swap_use_vma_readahead(void)
 	return READ_ONCE(enable_vma_readahead) && !atomic_read(&nr_rotate_swap);
 }
 
+static inline bool swap_use_tid_readahead(void)
+{
+	return READ_ONCE(enable_tid_readahead) && !atomic_read(&nr_rotate_swap);
+}
+
 /*
  * Lookup a swap entry in the swap cache. A found folio will be returned
  * unlocked and with its refcount incremented - we rely on the kernel
@@ -370,13 +385,24 @@ struct folio *swap_cache_get_folio(swp_entry_t entry,
 			unsigned long ra_val;
 			int win, hits;
 
+#ifdef CONFIG_SWAP_TID
+			/* current->pid refers to the ID of the current thread */
+			pid_t tid = current->pid;
+			ra_val = GET_SWAP_RA_VAL(vma, tid);
+#else
 			ra_val = GET_SWAP_RA_VAL(vma);
+#endif
 			win = SWAP_RA_WIN(ra_val);
 			hits = SWAP_RA_HITS(ra_val);
 			if (readahead)
 				hits = min_t(int, hits + 1, SWAP_RA_HITS_MAX);
+#ifdef CONFIG_SWAP_TID
+			atomic_long_set(&vma->swap_readahead_infos[tid],
+					SWAP_RA_VAL(addr, win, hits));
+#else
 			atomic_long_set(&vma->swap_readahead_info,
 					SWAP_RA_VAL(addr, win, hits));
+#endif
 		}
 
 		if (readahead) {
@@ -938,3 +964,4 @@ delete_obj:
 }
 subsys_initcall(swap_init_sysfs);
 #endif
+

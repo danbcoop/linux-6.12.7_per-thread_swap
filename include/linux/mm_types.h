@@ -759,6 +759,10 @@ struct vm_area_struct {
 #endif
 #ifdef CONFIG_SWAP
 	atomic_long_t swap_readahead_info;
+#ifdef CONFIG_SWAP_TID
+ #define MAX_NR_THREADS 16;
+	atomic_long_t swap_readahead_infos[MAX_NR_THREADS];
+#endif
 #endif
 #ifndef CONFIG_MMU
 	struct vm_region *vm_region;	/* NOMMU mapping region */
@@ -1500,3 +1504,4 @@ enum {
 };
 
 #endif /* _LINUX_MM_TYPES_H */
+
