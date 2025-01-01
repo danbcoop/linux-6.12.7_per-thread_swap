@@ -781,13 +781,25 @@ static int swap_vma_ra_win(struct vm_fault *vmf, unsigned long *start,
 		return 1;
 
 	faddr = vmf->address;
+	
+#ifdef CONFIG_SWAP_TID
+	/* current->pid refers to the ID of the current thread */
+	pid_t tid = current->pid;
+	ra_val = GET_SWAP_RA_VAL(vma, tid);
+#else
 	ra_val = GET_SWAP_RA_VAL(vma);
+#endif
 	prev_faddr = SWAP_RA_ADDR(ra_val);
 	prev_win = SWAP_RA_WIN(ra_val);
 	hits = SWAP_RA_HITS(ra_val);
 	win = __swapin_nr_pages(PFN_DOWN(prev_faddr), PFN_DOWN(faddr), hits,
 				max_win, prev_win);
+#ifdef CONFIG_SWAP_TID
+			atomic_long_set(&vma->swap_readahead_infos[tid],
+					SWAP_RA_VAL(faddr, win, 0));
+#else
 	atomic_long_set(&vma->swap_readahead_info, SWAP_RA_VAL(faddr, win, 0));
+#endif
 	if (win == 1)
 		return 1;
 
