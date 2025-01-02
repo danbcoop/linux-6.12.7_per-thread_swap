@@ -760,7 +760,7 @@ struct vm_area_struct {
 #ifdef CONFIG_SWAP
 	atomic_long_t swap_readahead_info;
 #ifdef CONFIG_SWAP_TID
- #define MAX_NR_THREADS 16;
+ #define MAX_NR_THREADS 16
 	atomic_long_t swap_readahead_infos[MAX_NR_THREADS];
 #endif
 #endif
