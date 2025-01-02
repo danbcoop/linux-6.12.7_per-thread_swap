@@ -350,11 +350,6 @@ static inline bool swap_use_vma_readahead(void)
 	return READ_ONCE(enable_vma_readahead) && !atomic_read(&nr_rotate_swap);
 }
 
-static inline bool swap_use_tid_readahead(void)
-{
-	return READ_ONCE(enable_tid_readahead) && !atomic_read(&nr_rotate_swap);
-}
-
 /*
  * Lookup a swap entry in the swap cache. A found folio will be returned
  * unlocked and with its refcount incremented - we rely on the kernel
